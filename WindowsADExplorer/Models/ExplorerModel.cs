@@ -19,8 +19,6 @@ namespace WindowsADExplorer.Models
         private readonly IUserMapper userMapper;
         private readonly IPropertyMapper propertyMapper;
         private IADRepository repository;
-        private bool areGroupsLoaded;
-        private bool areUsersLoaded;
         private ICollection currentCollection;
         private CancellationTokenSource tokenSource;
 
@@ -294,12 +292,10 @@ namespace WindowsADExplorer.Models
         {
             if (currentCollection == Groups)
             {
-                areGroupsLoaded = false;
                 RetrieveGroups(filterText);
             }
             else if (currentCollection == Users)
             {
-                areUsersLoaded = false;
                 RetrieveUsers(filterText);
             }
         }
