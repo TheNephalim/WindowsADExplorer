@@ -28,6 +28,7 @@
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" MinWidth="250" />
+                        <ColumnDefinition Width="5" />
                         <ColumnDefinition Width="Auto" MinWidth="250" />
                     </Grid.ColumnDefinitions>
                     <TreeView Grid.Column="0" 
@@ -54,7 +55,8 @@
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
                     </TreeView>
-                    <Grid Grid.Column="1">
+                    <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" />
+                    <Grid Grid.Column="2">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
@@ -79,6 +81,7 @@
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" MinWidth="250" />
+                        <ColumnDefinition Width="5" />
                         <ColumnDefinition Width="Auto" MinWidth="250" />
                     </Grid.ColumnDefinitions>
                     <TreeView 
@@ -105,7 +108,8 @@
                             </HierarchicalDataTemplate>
                         </TreeView.ItemTemplate>
                     </TreeView>
-                    <Grid Grid.Column="1">
+                    <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" />
+                    <Grid Grid.Column="2">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
