@@ -1,0 +1,139 @@
+﻿<Window x:Class="WindowsADExplorer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Windows AD Explorer"
+        ContentRendered="windowRendered" Closing="Window_Closing"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="pack://application:,,,/MaterialDesignThemes.Wpf;component/Resources/Roboto/#Roboto">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Row="0" Grid.Column="0" Target="txtFilter" Margin="5">_Filter:</Label>
+            <TextBox Grid.Row="0" Grid.Column="1" Name="txtFilter" Margin="5" TextChanged="txtFilter_TextChanged" />
+        </Grid>
+        <TabControl Grid.Row="1" Name="tabExplorer" Margin="5" MinWidth="250" MinHeight="250" SelectionChanged="tabChanged">
+            <TabItem Name="tabGroups" Header="Groups">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="250" />
+                        <ColumnDefinition Width="Auto" MinWidth="250" />
+                    </Grid.ColumnDefinitions>
+                    <TreeView Grid.Column="0" 
+                              Name="treeGroups"
+                              TreeViewItem.Expanded="groupExpanded"
+                              TreeViewItem.Selected="itemSelected"
+                              ItemsSource="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.Groups}"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Path=Users}">
+                                <TextBlock Text="{Binding Path=Name}" />
+                                <HierarchicalDataTemplate.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock>
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0} ({1})">
+                                                    <Binding Path="FullName" />
+                                                    <Binding Path="Name" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </HierarchicalDataTemplate.ItemTemplate>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Background="LightGray" Padding="5">Properties</TextBlock>
+                        <DataGrid Grid.Row="1" 
+                                  ItemsSource="{Binding ElementName=treeGroups, Path=SelectedItem.Properties}" 
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Name" Width="Auto" IsReadOnly="True" Binding="{Binding Path=Name}" />
+                                <DataGridTextColumn Header="Value" Width="Auto" IsReadOnly="True" Binding="{Binding Path=Value}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+            <TabItem Name="tabUsers" Header="Users">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="250" />
+                        <ColumnDefinition Width="Auto" MinWidth="250" />
+                    </Grid.ColumnDefinitions>
+                    <TreeView 
+                        Grid.Column="0"
+                        Name="treeUsers" 
+                        TreeViewItem.Expanded="userExpanded" 
+                        TreeViewItem.Selected="itemSelected"
+                        ItemsSource="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.Users}">
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Path=Groups}">
+                                <TextBlock>
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0} ({1})">
+                                            <Binding Path="FullName" />
+                                            <Binding Path="Name" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                                <HierarchicalDataTemplate.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Path=Name}" />
+                                    </DataTemplate>
+                                </HierarchicalDataTemplate.ItemTemplate>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Background="LightGray" Padding="5">Properties</TextBlock>
+                        <DataGrid Grid.Row="1" 
+                                  ItemsSource="{Binding ElementName=treeUsers, Path=SelectedItem.Properties}" 
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Name" Width="Auto" IsReadOnly="True" Binding="{Binding Path=Name}" />
+                                <DataGridTextColumn Header="Value" Width="Auto" IsReadOnly="True" Binding="{Binding Path=Value}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+        <StatusBar Grid.Row="2">
+            <StatusBarItem>
+                <TextBlock Text="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.ServerName, StringFormat='Connected to: {0}'}" />
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock Text="Searching..." Visibility="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.IsSearching, Converter={StaticResource visibilityConverter}}" />
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <TextBlock Text="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.RecordCount, StringFormat='Count: {0:N0}'}" />
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

@@ -1,0 +1,18 @@
+﻿<Window x:Class="WindowsADExplorer.ErrorDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Name="dlgError"
+        Height="Auto" 
+        Width="Auto"
+        MinWidth="400"
+        ShowInTaskbar="False" 
+        WindowStyle="ToolWindow"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Orientation="Vertical">
+        <TextBlock Text="{Binding ElementName=dlgError, Path=ErrorMessage}" Margin="5" />
+        <Label Target="{x:Reference txtStackTrace}" Margin="5,5,5,0">Stack Trace:</Label>
+        <TextBox Name="txtStackTrace" Text="{Binding Source={StaticResource serviceLocator}, Path=ErrorModel.StackTrace}" Margin="5,0,5,5" IsReadOnly="True" MinHeight="150" Background="LightGray" BorderThickness="2" />
+        <Button IsDefault="True" IsCancel="False" HorizontalAlignment="Right" MinWidth="35" Margin="5" Click="okayClicked">OK</Button>
+    </StackPanel>
+</Window>

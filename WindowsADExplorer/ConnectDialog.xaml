@@ -1,0 +1,44 @@
+﻿<Window x:Class="WindowsADExplorer.ConnectDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Name="dlgConnect"
+        Title="Connection Settings" 
+        Width="Auto" Height="Auto" 
+        WindowStyle="ToolWindow" 
+        SizeToContent="WidthAndHeight"
+        FocusManager.FocusedElement="{Binding ElementName=txtDomainName}"
+        WindowStartupLocation="CenterOwner">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Grid.Row="0" Grid.Column="0" Margin="5">Connection Settings</TextBlock>
+        <Grid Grid.Row="1" Grid.Column="0" Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Name="DomainRow"/>
+                <RowDefinition Name="UserNameRow" />
+                <RowDefinition Name="PasswordRow" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Name="LabelRow" Width="Auto" />
+                <ColumnDefinition MaxWidth="25" />
+                <ColumnDefinition Name="ValueRow" MinWidth="250" Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Row="0" Grid.Column="0" Margin="5" Target="{Binding ElementName=txtDomainName}">Domain Name:</Label>
+            <TextBox Grid.Row="0" Grid.Column="2" Name="txtDomainName" Margin="5" Text="{Binding ElementName=dlgConnect, Path=DomainName}"></TextBox>
+            <Label Grid.Row="1" Grid.Column="0" Margin="5" Target="{Binding ElementName=txtUserName}">User Name:</Label>
+            <TextBox Grid.Row="1" Grid.Column="2" Name="txtUserName" Margin="5" Text="{Binding ElementName=dlgConnect,  Path=UserName}"></TextBox>
+            <Label Grid.Row="2" Grid.Column="0" Margin="5" Target="{Binding ElementName=txtPassword}">Password:</Label>
+            <PasswordBox Grid.Row="2" Grid.Column="2" Name="txtPassword" Margin="5"></PasswordBox>
+        </Grid>
+        <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button IsDefault="True" MinWidth="100" Margin="5" Click="okayClicked">OK</Button>
+            <Button IsCancel="True" MinWidth="100" Margin="5">Cancel</Button>
+        </StackPanel>
+    </Grid>
+</Window>
