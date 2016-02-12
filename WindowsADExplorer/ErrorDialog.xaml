@@ -5,13 +5,16 @@
         Height="Auto" 
         Width="Auto"
         MinWidth="400"
-        ShowInTaskbar="False" 
-        WindowStyle="ToolWindow"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="pack://application:,,,/MaterialDesignThemes.Wpf;component/Resources/Roboto/#Roboto">
     <StackPanel Orientation="Vertical">
-        <TextBlock Text="{Binding ElementName=dlgError, Path=ErrorMessage}" Margin="5" />
-        <Label Target="{x:Reference txtStackTrace}" Margin="5,5,5,0">Stack Trace:</Label>
+        <TextBlock Text="{Binding Source={StaticResource serviceLocator}, Path=ErrorModel.ErrorMessage}" Margin="5" />
+        <Label Target="{Binding ElementName=txtStackTrace}" Margin="5,5,5,0">Stack Trace:</Label>
         <TextBox Name="txtStackTrace" Text="{Binding Source={StaticResource serviceLocator}, Path=ErrorModel.StackTrace}" Margin="5,0,5,5" IsReadOnly="True" MinHeight="150" Background="LightGray" BorderThickness="2" />
         <Button IsDefault="True" IsCancel="False" HorizontalAlignment="Right" MinWidth="35" Margin="5" Click="okayClicked">OK</Button>
     </StackPanel>

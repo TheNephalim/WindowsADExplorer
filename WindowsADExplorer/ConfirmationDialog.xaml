@@ -1,0 +1,19 @@
+﻿<Window x:Class="WindowsADExplorer.ConfirmationDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Name="dlgConfirmation"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterOwner"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="pack://application:,,,/MaterialDesignThemes.Wpf;component/Resources/Roboto/#Roboto">
+    <StackPanel Orientation="Vertical" Margin="5">
+        <TextBlock Text="{Binding Source={StaticResource serviceLocator}, Path=ConfirmationModel.Message}" Margin="5" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button MinWidth="35" Margin="5" Click="okayClicked">Yes</Button>
+            <Button IsDefault="True" IsCancel="True" MinWidth="35" Margin="5">No</Button>
+        </StackPanel>
+    </StackPanel>
+</Window>

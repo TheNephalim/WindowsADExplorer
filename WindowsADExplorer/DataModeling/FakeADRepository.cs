@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using WindowsADExplorer.Entities;
 
 namespace WindowsADExplorer.DataModeling
@@ -18,8 +19,8 @@ namespace WindowsADExplorer.DataModeling
 
         public IEnumerable<Group> GetGroups(string searchTerm)
         {
-            var groups = Enumerable.Range(1, 100)
-                .Select(i => "Group " + i)
+            var groups = Enumerable.Range(1, 100000)
+                .Select(i => "Group " + getRandomString(i))
                 .Select(s => new Group() { Name = s });
             if (!String.IsNullOrWhiteSpace(searchTerm))
             {
@@ -40,8 +41,8 @@ namespace WindowsADExplorer.DataModeling
 
         public IEnumerable<User> GetUsers(string searchTerm)
         {
-            var users = Enumerable.Range(1, 10)
-                .Select(i => "User " + i)
+            var users = Enumerable.Range(1, 100000)
+                .Select(i => "User " + getRandomString(i))
                 .Select(s => new User() { Name = s, FullName = s });
             if (!String.IsNullOrWhiteSpace(searchTerm))
             {
@@ -71,6 +72,29 @@ namespace WindowsADExplorer.DataModeling
             var properties = Enumerable.Range(1, 50)
                 .Select(i => new Property() { Name = "Property " + i, Value = "Value " + i });
             return properties;
+        }
+
+
+        public void AddGroupMember(string groupName, string userName)
+        {
+        }
+
+        public void RemoveGroupMember(string groupName, string userName)
+        {
+        }
+
+        private static string getRandomString(int seed)
+        {
+            Random random = new Random(seed);
+            int length = random.Next(5, 10);
+            StringBuilder builder = new StringBuilder();
+            for (int position = 0; position != length; ++position)
+            {
+                int value = random.Next(65, 65 + 26);
+                char character = (char)value;
+                builder.Append(character);
+            }
+            return builder.ToString();
         }
     }
 }

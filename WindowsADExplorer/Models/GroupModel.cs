@@ -5,10 +5,21 @@ namespace WindowsADExplorer.Models
 {
     public class GroupModel : ObservableModel<GroupModel>
     {
+        private string name;
+
         public string Name 
         {
-            get { return Get(x => x.Name); }
-            set { Set(x => x.Name, value); }
+            get { return name; }
+            set 
+            {
+                if (name == value)
+                {
+                    return;
+                }
+                OnPropertyChanging(x => x.Name);
+                name = value;
+                OnPropertyChanged(x => x.Name);
+            }
         }
 
         public ObservableCollection<PropertyModel> Properties

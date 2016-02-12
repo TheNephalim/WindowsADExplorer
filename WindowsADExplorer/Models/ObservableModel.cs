@@ -62,6 +62,12 @@ namespace WindowsADExplorer.Models
             return getProperty<T>(accessor).Name;
         }
 
+        protected virtual void OnPropertyChanging<T>(Expression<Func<TModel, T>> accessor)
+        {
+            PropertyInfo property = getProperty(accessor);
+            onPropertyChanging(property);
+        }
+
         protected virtual void OnPropertyChanged<T>(Expression<Func<TModel, T>> accessor)
         {
             PropertyInfo property = getProperty(accessor);

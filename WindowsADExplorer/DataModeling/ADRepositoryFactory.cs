@@ -15,7 +15,7 @@ namespace WindowsADExplorer.DataModeling
         {
             Domain domain = getDomain(domainName, userName, password);
             DirectoryEntry rootEntry = domain.GetDirectoryEntry();
-            return new ADRepository(domain.Name, rootEntry);
+            return new ADRepository(domain.Name, rootEntry, userName, password);
         }
 
         private static Domain getDomain(string domainName, string userName, string password)

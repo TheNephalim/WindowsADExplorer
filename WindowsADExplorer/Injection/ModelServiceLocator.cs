@@ -21,5 +21,15 @@ namespace WindowsADExplorer.Injection
         {
             get { return kernel.Get<ErrorModel>(); }
         }
+
+        public ManagerUsersModel AddUserModel
+        {
+            get { return kernel.Get<ManagerUsersModel>(); }
+        }
+
+        public ConfirmationModel ConfirmationModel
+        {
+            get { return kernel.Get<ConfirmationModel>(); }
+        }
     }
 }

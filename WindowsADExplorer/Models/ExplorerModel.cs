@@ -21,6 +21,8 @@ namespace WindowsADExplorer.Models
         private IADRepository repository;
         private ICollection currentCollection;
         private CancellationTokenSource tokenSource;
+        private Task groupTask;
+        private Task userTask;
 
         public ExplorerModel(
             IADRepositoryFactory factory,
@@ -48,15 +50,17 @@ namespace WindowsADExplorer.Models
             this.groupMapper = groupMapper;
             this.userMapper = userMapper;
             this.propertyMapper = propertyMapper;
+            this.groupTask = Task.Factory.StartNew(() => { });
+            this.userTask = Task.Factory.StartNew(() => { });
 
             Groups = new ObservableCollection<GroupModel>();
-            BindingOperations.EnableCollectionSynchronization(Groups, new object());
-            Groups.CollectionChanged += (o, e) => { OnPropertyChanged(x => x.RecordCount); };
+            BindingOperations.EnableCollectionSynchronization(Groups, Groups);
+            //Groups.CollectionChanged += (o, e) => { OnPropertyChanged(x => x.RecordCount); };
             currentCollection = Groups;
 
             Users = new ObservableCollection<UserModel>();
-            BindingOperations.EnableCollectionSynchronization(Users, new object());
-            Users.CollectionChanged += (o, e) => { OnPropertyChanged(x => x.RecordCount); };
+            BindingOperations.EnableCollectionSynchronization(Users, Groups);
+            //Users.CollectionChanged += (o, e) => { OnPropertyChanged(x => x.RecordCount); };
         }
 
         public int RecordCount 
@@ -104,42 +108,51 @@ namespace WindowsADExplorer.Models
             ServerName = this.repository.GetServerName();
         }
 
+        public void ShareConnection(ManagerUsersModel model)
+        {
+            if (model == null)
+            {
+                throw new ArgumentNullException("model");
+            }
+            if (repository == null)
+            {
+                throw new InvalidOperationException("You must connect to AD before sharing the connection.");
+            }
+            model.SetRepository(repository);
+        }
+
         public void RetrieveGroups(string searchTerm)
         {
             if (repository == null)
             {
                 throw new InvalidOperationException("You must connect to AD before querying the groups.");
             }
-            currentCollection = Groups;
-            OnPropertyChanged(x => x.RecordCount);
+            //currentCollection = Groups;
+            //OnPropertyChanged(x => x.RecordCount);
 
             if (tokenSource != null)
             {
                 tokenSource.Cancel();
             }
             tokenSource = new CancellationTokenSource();
-            var token = tokenSource.Token;
 
-            Task.Factory.StartNew(() =>
+            groupTask = groupTask.ContinueWith(t =>
             {
                 IsSearching = true;
                 Groups.Clear();
-                var groups = repository.GetGroups(searchTerm);
+                var groups = repository.GetGroups(searchTerm).OrderBy(g => g.Name);
                 var models = groups.Select(g => groupMapper.GetModel(g, includeDummy: true));
                 var modelComparer = KeyComparer<GroupModel>.OrderBy(m => m.Name);
                 foreach (var model in models)
                 {
-                    if (token.IsCancellationRequested)
-                    {
-                        break;
-                    }
-                    int index = Groups.ToSublist().UpperBound(model, modelComparer);
-                    Groups.Insert(index, model);
+                    tokenSource.Token.ThrowIfCancellationRequested();
+                    Groups.Add(model);
                 }
-            }, token).ContinueWith(t => 
-            { 
+            }, tokenSource.Token);
+            groupTask.ContinueWith(t => 
+            {
                 IsSearching = false; 
-            }, token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext());
+            }, tokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         public void RetrieveGroupProperties(GroupModel group)
@@ -198,17 +211,16 @@ namespace WindowsADExplorer.Models
             {
                 throw new InvalidOperationException("You must connect to AD before querying the users.");
             }
-            currentCollection = Users;
-            OnPropertyChanged(x => x.RecordCount);
+            //currentCollection = Users;
+            //OnPropertyChanged(x => x.RecordCount);
 
             if (tokenSource != null)
             {
                 tokenSource.Cancel();
             }
             tokenSource = new CancellationTokenSource();
-            var token = tokenSource.Token;
 
-            Task.Factory.StartNew(() =>
+            userTask = userTask.ContinueWith(t =>
             {
                 IsSearching = true;
                 Users.Clear();
@@ -217,17 +229,15 @@ namespace WindowsADExplorer.Models
                 var modelComparer = KeyComparer<UserModel>.OrderBy(u => u.FullName);
                 foreach (var model in models)
                 {
-                    if (token.IsCancellationRequested)
-                    {
-                        break;
-                    }
+                    tokenSource.Token.ThrowIfCancellationRequested();
                     int index = Users.ToSublist().UpperBound(model, modelComparer);
                     Users.Insert(index, model);
                 }
-            }, token).ContinueWith(t => 
+            }, tokenSource.Token);
+            userTask.ContinueWith(t => 
             { 
                 IsSearching = false; 
-            }, token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext());
+            }, tokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         public void RetrieveUserProperties(UserModel user)

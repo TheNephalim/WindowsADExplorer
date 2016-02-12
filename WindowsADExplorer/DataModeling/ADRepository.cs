@@ -25,14 +25,24 @@ namespace WindowsADExplorer.DataModeling
         IEnumerable<Property> GetGroupProperties(string groupName);
 
         IEnumerable<Property> GetUserProperties(string userName);
+
+        void AddGroupMember(string groupName, string userName);
+
+        void RemoveGroupMember(string groupName, string userName);
     }
 
     public class ADRepository : IADRepository
     {
         private readonly string serverName;
         private readonly DirectoryEntry rootEntry;
+        private readonly string userName;
+        private readonly string password;
 
-        public ADRepository(string serverName, DirectoryEntry rootEntry)
+        public ADRepository(
+            string serverName, 
+            DirectoryEntry rootEntry,
+            string userName,
+            string password)
         {
             if (rootEntry == null)
             {
@@ -40,6 +50,8 @@ namespace WindowsADExplorer.DataModeling
             }
             this.serverName = serverName;
             this.rootEntry = rootEntry;
+            this.userName = userName;
+            this.password = password;
         }
 
         public void TestPath()
@@ -230,6 +242,52 @@ namespace WindowsADExplorer.DataModeling
                 }
             }
             return builder.ToString();
+        }
+
+        public void AddGroupMember(string groupName, string userName)
+        {
+            string groupDN = getGroupDN(groupName);
+            if (groupDN == null)
+            {
+                const string format = "Could not find a group with the given name ({0}).";
+                string message = String.Format(format, groupName);
+                throw new InvalidOperationException(message);
+            }
+            string userDN = getUserDN(userName);
+            if (userDN == null)
+            {
+                const string format = "Could not find a group with the given name ({0}).";
+                string message = String.Format(format, groupName);
+                throw new InvalidOperationException(message);
+            }
+            using (DirectoryEntry groupEntry = new DirectoryEntry("LDAP://" + groupDN, this.userName, password)) // TODO - pass credentials
+            {
+                groupEntry.Properties["member"].Add(userDN);
+                groupEntry.CommitChanges();
+            }
+        }
+
+        public void RemoveGroupMember(string groupName, string userName)
+        {
+            string groupDN = getGroupDN(groupName);
+            if (groupDN == null)
+            {
+                const string format = "Could not find a group with the given name ({0}).";
+                string message = String.Format(format, groupName);
+                throw new InvalidOperationException(message);
+            }
+            string userDN = getUserDN(userName);
+            if (userDN == null)
+            {
+                const string format = "Could not find a group with the given name ({0}).";
+                string message = String.Format(format, groupName);
+                throw new InvalidOperationException(message);
+            }
+            using (DirectoryEntry groupEntry = new DirectoryEntry("LDAP://" + groupDN, this.userName, password)) // TODO - pass credentials
+            {
+                groupEntry.Properties["member"].Remove(userDN);
+                groupEntry.CommitChanges();
+            }
         }
     }
 }

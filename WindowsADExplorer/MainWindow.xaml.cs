@@ -47,9 +47,10 @@ namespace WindowsADExplorer
             return false;
         }
 
-        private static ConnectionModel getConnectionDetails()
+        private ConnectionModel getConnectionDetails()
         {
             ConnectDialog dialog = new ConnectDialog();
+            dialog.Owner = this;
             if (dialog.ShowDialog() == true)
             {
                 return dialog.ConnectionModel;
@@ -60,9 +61,10 @@ namespace WindowsADExplorer
             }
         }
 
-        private static void showErrorDialog(Exception exception)
+        private void showErrorDialog(Exception exception)
         {
             ErrorDialog errorDialog = new ErrorDialog();
+            errorDialog.Owner = this;
             errorDialog.Title = "Failed to Connect";
             errorDialog.ErrorDetails.ErrorMessage = exception.Message;
             errorDialog.ErrorDetails.StackTrace = exception.StackTrace;
@@ -144,6 +146,26 @@ namespace WindowsADExplorer
         private void txtFilter_TextChanged(object sender, TextChangedEventArgs e)
         {
             model.ApplyFilter(txtFilter.Text);
+        }
+
+        private void managerUsersClicked(object sender, RoutedEventArgs e)
+        {
+            MenuItem menuItem = e.Source as MenuItem;
+            if (menuItem == null)
+            {
+                return;
+            }
+            GroupModel group = menuItem.DataContext as GroupModel;
+            if (group == null)
+            {
+                return;
+            }
+            ManagerUsersDialog dialog = new ManagerUsersDialog();
+            dialog.Owner = this;
+            var serviceLocator = this.FindResource<ModelServiceLocator>("serviceLocator");
+            model.ShareConnection(serviceLocator.AddUserModel);
+            dialog.SetGroup(group);
+            dialog.ShowDialog();
         }
     }
 }

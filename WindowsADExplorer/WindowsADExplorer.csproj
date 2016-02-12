@@ -76,8 +76,16 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="ConfirmationDialog.xaml.cs">
+      <DependentUpon>ConfirmationDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ManagerUsersDialog.xaml.cs">
+      <DependentUpon>ManagerUsersDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Entities\Property.cs" />
     <Compile Include="Mappers\PropertyMapper.cs" />
+    <Compile Include="Models\ConfirmationModel.cs" />
+    <Compile Include="Models\ManagerUsersModel.cs" />
     <Compile Include="Models\ErrorModel.cs" />
     <Compile Include="Models\PropertyModel.cs" />
     <Compile Include="Settings\ADSettings.cs" />
@@ -86,6 +94,14 @@
     <Compile Include="Mappers\UserMapper.cs" />
     <Compile Include="Models\ObservableModel.cs" />
     <Compile Include="UIExtensions.cs" />
+    <Page Include="ConfirmationDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="ManagerUsersDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="ConnectDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

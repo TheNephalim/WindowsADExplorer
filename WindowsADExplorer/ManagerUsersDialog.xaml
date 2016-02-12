@@ -1,0 +1,85 @@
+﻿<Window x:Class="WindowsADExplorer.ManagerUsersDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="{Binding Source={StaticResource serviceLocator}, Path=AddUserModel.Group.Name, StringFormat='{}{0} - Manager Users'}"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="pack://application:,,,/MaterialDesignThemes.Wpf;component/Resources/Roboto/#Roboto" Closing="windowClosing">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Target="{Binding ElementName=cmbUsers}" Margin="5">
+                <Label.Content>
+                    <StackPanel Orientation="Horizontal">
+                        <md:PackIcon Kind="Magnify" />
+                        <TextBlock>Search:</TextBlock>
+                    </StackPanel>
+                </Label.Content>
+            </Label>
+            <ComboBox Grid.Column="1" 
+                      Name="cmbUsers"
+                      Margin="5"
+                      ItemsSource="{Binding Source={StaticResource serviceLocator}, Path=AddUserModel.SearchResults}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock>
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="{}{0} ({1})">
+                                    <Binding Path="FullName" />
+                                    <Binding Path="Name" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="2" Margin="5" Click="addUserClicked">
+                <StackPanel Orientation="Horizontal">
+                    <md:PackIcon Kind="AccountPlus" Margin="0,0,5,0" />
+                    <TextBlock Text="Add" />
+                </StackPanel>
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=cmbUsers, Path=SelectedItem}" Value="{x:Null}">
+                                <Setter Property="IsEnabled" Value="False" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Grid>
+        <GroupBox Grid.Row="1" Header="Current Users" Margin="5">
+            <DataGrid Name="gridMembers"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      AutoGenerateColumns="False" 
+                      IsReadOnly="True"
+                      ItemsSource="{Binding Source={StaticResource serviceLocator}, Path=AddUserModel.Members}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Full Name" Binding="{Binding Path=FullName}" Width="*" />
+                    <DataGridTextColumn Header="Domain Name" Binding="{Binding Path=Name}" Width="*" />
+                    <DataGridTemplateColumn Header="Action" Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Background="Red" BorderBrush="DarkRed" Click="removeUserClicked">
+                                    <md:PackIcon Kind="Delete" />
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </GroupBox>
+    </Grid>
+</Window>
