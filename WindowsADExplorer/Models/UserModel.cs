@@ -4,16 +4,36 @@ namespace WindowsADExplorer.Models
 {
     public class UserModel : ObservableModel<UserModel>
     {
+        private string name;
         public string Name 
         {
-            get { return Get(x => x.Name); }
-            set { Set(x => x.Name, value); }
+            get { return name; }
+            set 
+            {
+                if (name == value)
+                {
+                    return;
+                }
+                OnPropertyChanging(x => x.Name);
+                name = value;
+                OnPropertyChanged(x => x.Name);
+            }
         }
 
+        private string fullName;
         public string FullName 
         {
-            get { return Get(x => x.FullName); }
-            set { Set(x => x.FullName, value); }
+            get { return fullName; }
+            set 
+            {
+                if (fullName == value)
+                {
+                    return;
+                }
+                OnPropertyChanging(x => x.FullName);
+                fullName = value;
+                OnPropertyChanged(x => x.FullName);
+            }
         }
 
         public ThreadSafeObservableCollection<PropertyModel> Properties

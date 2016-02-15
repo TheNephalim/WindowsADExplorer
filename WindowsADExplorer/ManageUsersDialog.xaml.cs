@@ -23,14 +23,9 @@ namespace WindowsADExplorer
             model.SetGroup(group);
         }
 
-        private void addUserClicked(object sender, RoutedEventArgs e)
+        private void searchUserClicked(object sender, RoutedEventArgs e)
         {
-            UserModel newUser = cmbUsers.SelectedItem as UserModel;
-            if (newUser == null)
-            {
-                return;
-            }
-            model.AddMember(newUser);
+            model.Search(txtSearch.Text);
         }
 
         private void removeUserClicked(object sender, RoutedEventArgs e)

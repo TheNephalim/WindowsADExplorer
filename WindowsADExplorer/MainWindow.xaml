@@ -191,7 +191,7 @@
                 <TextBlock Text="Searching..." Visibility="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.IsSearching, Converter={StaticResource visibilityConverter}}" />
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Text="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.RecordCount, StringFormat='Count: {0:N0}'}" />
+                <TextBlock Text="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.ActiveCollection.Count, StringFormat='Count: {0:N0}'}" />
             </StatusBarItem>
         </StatusBar>
     </Grid>

@@ -24,7 +24,7 @@ namespace WindowsADExplorer.DataModeling
                 .Select(s => new Group() { Name = s });
             if (!String.IsNullOrWhiteSpace(searchTerm))
             {
-                groups = groups.Where(g => g.Name.Contains(searchTerm));
+                groups = groups.Where(g => g.Name.ToLower().Contains(searchTerm.ToLower()));
             }
             return groups;
         }
@@ -46,7 +46,7 @@ namespace WindowsADExplorer.DataModeling
                 .Select(s => new User() { Name = s, FullName = s });
             if (!String.IsNullOrWhiteSpace(searchTerm))
             {
-                users = users.Where(g => g.Name.Contains(searchTerm));
+                users = users.Where(g => g.Name.ToLower().Contains(searchTerm.ToLower()));
             }
             return users;
         }

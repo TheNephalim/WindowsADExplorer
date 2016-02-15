@@ -11,7 +11,9 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" MaxHeight="250" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
@@ -19,48 +21,29 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Label Grid.Column="0" Target="{Binding ElementName=cmbUsers}" Margin="5">
-                <Label.Content>
-                    <StackPanel Orientation="Horizontal">
-                        <md:PackIcon Kind="Magnify" />
-                        <TextBlock>Search:</TextBlock>
-                    </StackPanel>
-                </Label.Content>
-            </Label>
-            <ComboBox Grid.Column="1" 
-                      Name="cmbUsers"
-                      Margin="5"
-                      ItemsSource="{Binding Source={StaticResource serviceLocator}, Path=AddUserModel.SearchResults}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock>
-                            <TextBlock.Text>
-                                <MultiBinding StringFormat="{}{0} ({1})">
-                                    <Binding Path="FullName" />
-                                    <Binding Path="Name" />
-                                </MultiBinding>
-                            </TextBlock.Text>
-                        </TextBlock>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button Grid.Column="2" Margin="5" Click="addUserClicked">
+            <Label Grid.Column="0" Target="{Binding ElementName=txtSearch}" Margin="5" Content="Search:" />
+            <TextBox Grid.Column="1" Name="txtSearch" Margin="5" />
+            <Button Grid.Column="2" Margin="5" Click="searchUserClicked">
                 <StackPanel Orientation="Horizontal">
-                    <md:PackIcon Kind="AccountPlus" Margin="0,0,5,0" />
-                    <TextBlock Text="Add" />
+                    <md:PackIcon Kind="AccountSearch" Margin="0,0,5,0" />
+                    <TextBlock Text="Search" />
                 </StackPanel>
-                <Button.Style>
-                    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding ElementName=cmbUsers, Path=SelectedItem}" Value="{x:Null}">
-                                <Setter Property="IsEnabled" Value="False" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
             </Button>
         </Grid>
-        <GroupBox Grid.Row="1" Header="Current Users" Margin="5">
+        <GroupBox Grid.Row="1" Header="Search Results" Margin="5">
+            <DataGrid Name="gridSearchResults"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      AutoGenerateColumns="False" 
+                      IsReadOnly="True"
+                      ItemsSource="{Binding Source={StaticResource serviceLocator}, Path=AddUserModel.SearchResults}"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Full Name" Binding="{Binding Path=FullName}" Width="*" />
+                    <DataGridTextColumn Header="Domain Name" Binding="{Binding Path=Name}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </GroupBox>
+        <GroupBox Grid.Row="2" Header="Current Users" Margin="5">
             <DataGrid Name="gridMembers"
                       VirtualizingPanel.IsVirtualizing="True"
                       AutoGenerateColumns="False" 
@@ -81,5 +64,13 @@
                 </DataGrid.Columns>
             </DataGrid>
         </GroupBox>
+        <StatusBar Grid.Row="3">
+            <StatusBarItem>
+                <TextBlock Text="Searching..." Visibility="{Binding Source={StaticResource serviceLocator}, Path=AddUserModel.IsSearching, Converter={StaticResource visibilityConverter}}" />
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock />
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>

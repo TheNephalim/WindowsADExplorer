@@ -18,7 +18,6 @@ namespace WindowsADExplorer.Models
         private readonly IUserMapper userMapper;
         private readonly IPropertyMapper propertyMapper;
         private IADRepository repository;
-        private ICollection currentCollection;
         private CancellationTokenSource tokenSource;
         private Task groupTask;
         private Task userTask;
@@ -54,31 +53,29 @@ namespace WindowsADExplorer.Models
 
             Groups = new ThreadSafeObservableCollection<GroupModel>();
             Groups.EnableSync();
-            Groups.CollectionChanged += (o, e) => { OnPropertyChanged(x => x.RecordCount); };
-            currentCollection = Groups;
 
             Users = new ThreadSafeObservableCollection<UserModel>();
             Users.EnableSync();
-            Users.CollectionChanged += (o, e) => { OnPropertyChanged(x => x.RecordCount); };
         }
 
         public event EventHandler<Exception> ErrorOccurred;
 
-        public int RecordCount 
-        {
-            get { return currentCollection.Count; }
-        }
-
         public string ServerName
         {
             get { return Get(x => x.ServerName); }
-            set { Set(x => x.ServerName, value); }
+            private set { Set(x => x.ServerName, value); }
         }
 
         public bool IsSearching
         {
             get { return Get(x => x.IsSearching); }
             private set { Set(x => x.IsSearching, value); }
+        }
+
+        public ICollection ActiveCollection
+        {
+            get { return Get(x => x.ActiveCollection); }
+            private set { Set(x => x.ActiveCollection, value); }
         }
 
         public ThreadSafeObservableCollection<GroupModel> Groups 
@@ -128,8 +125,7 @@ namespace WindowsADExplorer.Models
             {
                 throw new InvalidOperationException("You must connect to AD before querying the groups.");
             }
-            currentCollection = Groups;
-            OnPropertyChanged(x => x.RecordCount);
+            ActiveCollection = Groups;
 
             if (tokenSource != null)
             {
@@ -227,8 +223,7 @@ namespace WindowsADExplorer.Models
             {
                 throw new InvalidOperationException("You must connect to AD before querying the users.");
             }
-            currentCollection = Users;
-            OnPropertyChanged(x => x.RecordCount);
+            ActiveCollection = Users;
 
             if (tokenSource != null)
             {

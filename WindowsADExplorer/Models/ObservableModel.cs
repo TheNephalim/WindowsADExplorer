@@ -10,10 +10,12 @@ namespace WindowsADExplorer.Models
         where TModel : ObservableModel<TModel>
     {
         private readonly Dictionary<PropertyInfo, object> lookup;
+        private readonly Dictionary<PropertyInfo, List<PropertyInfo>> dependentPropertyLookup;
 
         protected ObservableModel()
         {
             this.lookup = new Dictionary<PropertyInfo, object>();
+            this.dependentPropertyLookup = new Dictionary<PropertyInfo, List<PropertyInfo>>();
         }
 
         public event PropertyChangingEventHandler PropertyChanging;
@@ -53,8 +55,23 @@ namespace WindowsADExplorer.Models
                 return;
             }
             onPropertyChanging(property);
+            notifyDependentPropertiesChanging(property);
             lookup[property] = value;
             onPropertyChanged(property);
+            notifyDependentPropertiesChanged(property);
+        }
+
+        public void DefineDependency<T, U>(Expression<Func<TModel, T>> sourceAccessor, Expression<Func<TModel, U>> dependentAccessor)
+        {
+            PropertyInfo sourceProperty = getProperty(sourceAccessor);
+            PropertyInfo dependentProperty = getProperty(dependentAccessor);
+            List<PropertyInfo> dependentProperties;
+            if (!dependentPropertyLookup.TryGetValue(sourceProperty, out dependentProperties))
+            {
+                dependentProperties = new List<PropertyInfo>();
+                dependentPropertyLookup.Add(sourceProperty, dependentProperties);
+            }
+            dependentProperties.Add(dependentProperty);
         }
 
         protected string GetPropertyName<T>(Expression<Func<TModel, T>> accessor)
@@ -87,6 +104,32 @@ namespace WindowsADExplorer.Models
             if (PropertyChanged != null)
             {
                 PropertyChanged(this, new PropertyChangedEventArgs(property.Name));
+            }
+        }
+
+        private void notifyDependentPropertiesChanging(PropertyInfo property)
+        {
+            List<PropertyInfo> dependentProperties;
+            if (!dependentPropertyLookup.TryGetValue(property, out dependentProperties))
+            {
+                return;
+            }
+            foreach (PropertyInfo dependentProperty in dependentProperties)
+            {
+                onPropertyChanging(dependentProperty);
+            }
+        }
+
+        private void notifyDependentPropertiesChanged(PropertyInfo property)
+        {
+            List<PropertyInfo> dependentProperties;
+            if (!dependentPropertyLookup.TryGetValue(property, out dependentProperties))
+            {
+                return;
+            }
+            foreach (PropertyInfo dependentProperty in dependentProperties)
+            {
+                onPropertyChanged(dependentProperty);
             }
         }
 

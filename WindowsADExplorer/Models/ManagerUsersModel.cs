@@ -15,7 +15,9 @@ namespace WindowsADExplorer.Models
     {
         private readonly IUserMapper userMapper;
         private IADRepository repository;
-        private CancellationTokenSource tokenSource;
+        private Task searchTask;
+        private CancellationTokenSource memberTokenSource;
+        private CancellationTokenSource searchTokenSource;
 
         public ManagerUsersModel(IUserMapper userMapper)
         {
@@ -24,8 +26,19 @@ namespace WindowsADExplorer.Models
                 throw new ArgumentNullException("userMapper");
             }
             this.userMapper = userMapper;
+
             this.Members = new ThreadSafeObservableCollection<UserModel>();
+            this.Members.EnableSync();
+
+            this.searchTask = new Task(() => { });
             this.SearchResults = new ThreadSafeObservableCollection<UserModel>();
+            this.SearchResults.EnableSync();
+        }
+
+        public bool IsSearching
+        {
+            get { return Get(x => x.IsSearching); }
+            set { Set(x => x.IsSearching, value); }
         }
 
         public GroupModel Group
@@ -34,13 +47,13 @@ namespace WindowsADExplorer.Models
             private set { Set(x => x.Group, value); }
         }
 
-        public ObservableCollection<UserModel> SearchResults
+        public ThreadSafeObservableCollection<UserModel> SearchResults
         {
             get { return Get(x => x.SearchResults); }
             private set { Set(x => x.SearchResults, value); }
         }
 
-        public ObservableCollection<UserModel> Members
+        public ThreadSafeObservableCollection<UserModel> Members
         {
             get { return Get(x => x.Members); }
             private set { Set(x => x.Members, value); }
@@ -67,53 +80,75 @@ namespace WindowsADExplorer.Models
             }
             Group = group;
 
-            if (tokenSource != null)
+            if (memberTokenSource != null)
             {
-                tokenSource.Cancel();
+                memberTokenSource.Cancel();
             }
-            tokenSource = new CancellationTokenSource();
+            memberTokenSource = new CancellationTokenSource();
 
             var membersTask = Task.Factory.StartNew(() =>
             {
                 var members = repository.GetGroupMembers(group.Name);
                 return members;
-            }, tokenSource.Token);
-
-            var allUsersTask = Task.Factory.StartNew(() =>
+            }, memberTokenSource.Token).ContinueWith((t, o) => 
             {
-                var allUsers = repository.GetUsers(String.Empty);
-                return allUsers;
-            }, tokenSource.Token);
-
-            membersTask.ContinueWith((t, o) => 
-            {
+                CancellationToken token = memberTokenSource.Token;
                 Members.Clear();
 
                 var members = t.Result;
-                var models = members.OrderBy(m => m.FullName).ThenBy(m => m.Name).Select(m => userMapper.GetModel(m, includeDummy: false));
+                var models = members.Select(m => userMapper.GetModel(m, includeDummy: false));
+                var modelComparer = KeyComparer<UserModel>.OrderBy(m => m.FullName).ThenBy(m => m.Name);
                 foreach (var model in models)
                 {
-                    tokenSource.Token.ThrowIfCancellationRequested();
-                    Members.Add(model);
+                    token.ThrowIfCancellationRequested();
+                    int index = Members.ToSublist().UpperBound(model, modelComparer);
+                    Members.Insert(index, model);
                 }
-            }, null, tokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+            }, null, memberTokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+        }
 
-            Task.WhenAll(membersTask, allUsersTask).ContinueWith((t, o) => 
+        public void Search(string searchTerm)
+        {
+            if (String.IsNullOrWhiteSpace(searchTerm))
             {
+                return;
+            }
+            if (repository == null)
+            {
+                throw new InvalidOperationException("You must share the connection with the model before searching.");
+            }
+
+            if (searchTokenSource != null)
+            {
+                searchTokenSource.Cancel();
+            }
+            searchTokenSource = new CancellationTokenSource();
+
+            searchTask = searchTask.ContinueWith(
+                t => IsSearching = true,
+                searchTokenSource.Token,
+                TaskContinuationOptions.None,
+                TaskScheduler.FromCurrentSynchronizationContext()
+            ).ContinueWith(t =>
+            {
+                CancellationToken token = searchTokenSource.Token;
                 SearchResults.Clear();
 
-                var members = t.Result[0];
-                var allUsers = t.Result[1];
-
-                var userComparer = KeyEqualityComparer<User>.Using(u => u.Name);
-                var nonMembers = allUsers.Except(members, userComparer);
-                var models = nonMembers.OrderBy(m => m.FullName).ThenBy(m => m.Name).Select(m => userMapper.GetModel(m, includeDummy: false));
+                var searchResults = repository.GetUsers(searchTerm);
+                var models = searchResults.Select(m => userMapper.GetModel(m, includeDummy: false));
+                var modelComparer = KeyComparer<UserModel>.OrderBy(m => m.FullName).ThenBy(m => m.Name);
                 foreach (var model in models)
                 {
-                    tokenSource.Token.ThrowIfCancellationRequested();
-                    SearchResults.Add(model);
+                    token.ThrowIfCancellationRequested();
+                    int index = SearchResults.ToSublist().UpperBound(model, modelComparer);
+                    SearchResults.Insert(index, model);
                 }
-            }, null, tokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+            }, searchTokenSource.Token).ContinueWith(
+                t => IsSearching = false,
+                searchTokenSource.Token, 
+                TaskContinuationOptions.None, 
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
         }
 
         public void AddMember(UserModel user)
@@ -152,11 +187,15 @@ namespace WindowsADExplorer.Models
             }, TaskContinuationOptions.OnlyOnRanToCompletion);
         }
 
-        internal void Cancel()
+        public void Cancel()
         {
-            if (tokenSource != null)
+            if (memberTokenSource != null)
             {
-                tokenSource.Cancel();
+                memberTokenSource.Cancel();
+            }
+            if (searchTokenSource != null)
+            {
+                searchTokenSource.Cancel();
             }
         }
     }
