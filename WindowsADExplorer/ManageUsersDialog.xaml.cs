@@ -7,11 +7,11 @@ using WindowsADExplorer.Models;
 
 namespace WindowsADExplorer
 {
-    public partial class ManagerUsersDialog : Window
+    public partial class ManageUsersDialog : Window
     {
         private readonly ManagerUsersModel model;
 
-        public ManagerUsersDialog()
+        public ManageUsersDialog()
         {
             InitializeComponent();
             var serviceLocator = this.FindResource<ModelServiceLocator>("serviceLocator");

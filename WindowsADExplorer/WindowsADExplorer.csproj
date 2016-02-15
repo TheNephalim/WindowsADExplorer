@@ -79,8 +79,8 @@
     <Compile Include="ConfirmationDialog.xaml.cs">
       <DependentUpon>ConfirmationDialog.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ManagerUsersDialog.xaml.cs">
-      <DependentUpon>ManagerUsersDialog.xaml</DependentUpon>
+    <Compile Include="ManageUsersDialog.xaml.cs">
+      <DependentUpon>ManageUsersDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="Entities\Property.cs" />
     <Compile Include="Mappers\PropertyMapper.cs" />
@@ -88,6 +88,7 @@
     <Compile Include="Models\ManagerUsersModel.cs" />
     <Compile Include="Models\ErrorModel.cs" />
     <Compile Include="Models\PropertyModel.cs" />
+    <Compile Include="Models\ThreadSafeObservableCollection.cs" />
     <Compile Include="Settings\ADSettings.cs" />
     <Compile Include="DataModeling\FakeADRepositoryFactory.cs" />
     <Compile Include="DataModeling\IADSettings.cs" />
@@ -98,7 +99,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="ManagerUsersDialog.xaml">
+    <Page Include="ManageUsersDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

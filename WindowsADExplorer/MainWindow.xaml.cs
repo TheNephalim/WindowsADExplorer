@@ -16,6 +16,16 @@ namespace WindowsADExplorer
             InitializeComponent();
             var serviceLocator = this.FindResource<ModelServiceLocator>("serviceLocator");
             this.model = serviceLocator.ExplorerModel;
+            this.model.ErrorOccurred += errorOccurred;
+        }
+
+        private void errorOccurred(object sender, Exception e)
+        {
+            ErrorDialog dialog = new ErrorDialog();
+            dialog.Owner = this;
+            dialog.ErrorDetails.ErrorMessage = e.Message;
+            dialog.ErrorDetails.StackTrace = e.StackTrace;
+            dialog.ShowDialog();
         }
 
         private void windowRendered(object sender, EventArgs e)
@@ -25,7 +35,7 @@ namespace WindowsADExplorer
                 Close();
                 return;
             }
-            model.RetrieveGroups(txtFilter.Text);
+            model.RetrieveGroups(txtGroupFilter.Text);
         }
 
         private bool connect()
@@ -130,11 +140,11 @@ namespace WindowsADExplorer
             }
             if (tabExplorer.SelectedItem == tabGroups)
             {
-                model.RetrieveGroups(txtFilter.Text);
+                model.RetrieveGroups(txtGroupFilter.Text);
             }
             else if (tabExplorer.SelectedItem == tabUsers)
             {
-                model.RetrieveUsers(txtFilter.Text);
+                model.RetrieveUsers(txtUserFilter.Text);
             }
         }
 
@@ -143,9 +153,14 @@ namespace WindowsADExplorer
             model.Cancel();
         }
 
-        private void txtFilter_TextChanged(object sender, TextChangedEventArgs e)
+        private void groupFilterTextChanged(object sender, TextChangedEventArgs e)
         {
-            model.ApplyFilter(txtFilter.Text);
+            model.RetrieveGroups(txtGroupFilter.Text);
+        }
+
+        private void userFilterTextChanged(object sender, TextChangedEventArgs e)
+        {
+            model.RetrieveUsers(txtUserFilter.Text);
         }
 
         private void managerUsersClicked(object sender, RoutedEventArgs e)
@@ -160,7 +175,7 @@ namespace WindowsADExplorer
             {
                 return;
             }
-            ManagerUsersDialog dialog = new ManagerUsersDialog();
+            ManageUsersDialog dialog = new ManageUsersDialog();
             dialog.Owner = this;
             var serviceLocator = this.FindResource<ModelServiceLocator>("serviceLocator");
             model.ShareConnection(serviceLocator.AddUserModel);

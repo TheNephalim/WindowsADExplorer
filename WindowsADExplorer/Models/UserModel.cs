@@ -16,13 +16,13 @@ namespace WindowsADExplorer.Models
             set { Set(x => x.FullName, value); }
         }
 
-        public ObservableCollection<PropertyModel> Properties
+        public ThreadSafeObservableCollection<PropertyModel> Properties
         {
             get { return Get(x => x.Properties); }
             set { Set(x => x.Properties, value); }
         }
 
-        public ObservableCollection<GroupModel> Groups
+        public ThreadSafeObservableCollection<GroupModel> Groups
         {
             get { return Get(x => x.Groups); }
             set { Set(x => x.Groups, value); }

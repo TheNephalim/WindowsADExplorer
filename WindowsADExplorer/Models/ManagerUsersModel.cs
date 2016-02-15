@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Data;
 using ComparerExtensions;
 using NDex;
 using WindowsADExplorer.DataModeling;
@@ -25,10 +24,8 @@ namespace WindowsADExplorer.Models
                 throw new ArgumentNullException("userMapper");
             }
             this.userMapper = userMapper;
-            this.Members = new ObservableCollection<UserModel>();
-            BindingOperations.EnableCollectionSynchronization(this.Members, this.Members);
-            this.SearchResults = new ObservableCollection<UserModel>();
-            BindingOperations.EnableCollectionSynchronization(this.SearchResults, this.Members);
+            this.Members = new ThreadSafeObservableCollection<UserModel>();
+            this.SearchResults = new ThreadSafeObservableCollection<UserModel>();
         }
 
         public GroupModel Group

@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using WindowsADExplorer.Entities;
+﻿using WindowsADExplorer.Entities;
 using WindowsADExplorer.Models;
 
 namespace WindowsADExplorer.Mappers
@@ -19,8 +18,8 @@ namespace WindowsADExplorer.Mappers
         {
             GroupModel model = new GroupModel();
             model.Name = group.Name;
-            model.Properties = new ObservableCollection<PropertyModel>();
-            model.Users = new ObservableCollection<UserModel>();
+            model.Properties = new ThreadSafeObservableCollection<PropertyModel>();
+            model.Users = new ThreadSafeObservableCollection<UserModel>();
             if (includeDummy)
             {
                 model.Users.Add(dummyUser);

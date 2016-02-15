@@ -1,5 +1,4 @@
-﻿using System;
-using WindowsADExplorer.Entities;
+﻿using WindowsADExplorer.Entities;
 using WindowsADExplorer.Models;
 
 namespace WindowsADExplorer.Mappers

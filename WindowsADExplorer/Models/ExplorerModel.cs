@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Data;
 using ComparerExtensions;
 using NDex;
 using WindowsADExplorer.DataModeling;
@@ -53,15 +52,17 @@ namespace WindowsADExplorer.Models
             this.groupTask = Task.Factory.StartNew(() => { });
             this.userTask = Task.Factory.StartNew(() => { });
 
-            Groups = new ObservableCollection<GroupModel>();
-            BindingOperations.EnableCollectionSynchronization(Groups, Groups);
-            //Groups.CollectionChanged += (o, e) => { OnPropertyChanged(x => x.RecordCount); };
+            Groups = new ThreadSafeObservableCollection<GroupModel>();
+            Groups.EnableSync();
+            Groups.CollectionChanged += (o, e) => { OnPropertyChanged(x => x.RecordCount); };
             currentCollection = Groups;
 
-            Users = new ObservableCollection<UserModel>();
-            BindingOperations.EnableCollectionSynchronization(Users, Groups);
-            //Users.CollectionChanged += (o, e) => { OnPropertyChanged(x => x.RecordCount); };
+            Users = new ThreadSafeObservableCollection<UserModel>();
+            Users.EnableSync();
+            Users.CollectionChanged += (o, e) => { OnPropertyChanged(x => x.RecordCount); };
         }
+
+        public event EventHandler<Exception> ErrorOccurred;
 
         public int RecordCount 
         {
@@ -80,13 +81,13 @@ namespace WindowsADExplorer.Models
             private set { Set(x => x.IsSearching, value); }
         }
 
-        public ObservableCollection<GroupModel> Groups 
+        public ThreadSafeObservableCollection<GroupModel> Groups 
         { 
             get { return Get(x => x.Groups); }
             private set { Set(x => x.Groups, value); }
         }
 
-        public ObservableCollection<UserModel> Users 
+        public ThreadSafeObservableCollection<UserModel> Users 
         {
             get { return Get(x => x.Users); }
             private set { Set(x => x.Users, value); }
@@ -127,8 +128,8 @@ namespace WindowsADExplorer.Models
             {
                 throw new InvalidOperationException("You must connect to AD before querying the groups.");
             }
-            //currentCollection = Groups;
-            //OnPropertyChanged(x => x.RecordCount);
+            currentCollection = Groups;
+            OnPropertyChanged(x => x.RecordCount);
 
             if (tokenSource != null)
             {
@@ -136,23 +137,30 @@ namespace WindowsADExplorer.Models
             }
             tokenSource = new CancellationTokenSource();
 
-            groupTask = groupTask.ContinueWith(t =>
+            groupTask = groupTask.ContinueWith(
+                t => IsSearching = true, 
+                tokenSource.Token, 
+                TaskContinuationOptions.None, 
+                TaskScheduler.FromCurrentSynchronizationContext()
+            ).ContinueWith(t =>
             {
-                IsSearching = true;
+                CancellationToken token = tokenSource.Token;
                 Groups.Clear();
-                var groups = repository.GetGroups(searchTerm).OrderBy(g => g.Name);
+                var groups = repository.GetGroups(searchTerm);
                 var models = groups.Select(g => groupMapper.GetModel(g, includeDummy: true));
                 var modelComparer = KeyComparer<GroupModel>.OrderBy(m => m.Name);
                 foreach (var model in models)
                 {
-                    tokenSource.Token.ThrowIfCancellationRequested();
-                    Groups.Add(model);
+                    token.ThrowIfCancellationRequested();
+                    int index = Groups.ToSublist().UpperBound(model, modelComparer);
+                    Groups.Insert(index, model);
                 }
-            }, tokenSource.Token);
-            groupTask.ContinueWith(t => 
-            {
-                IsSearching = false; 
-            }, tokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext());
+            }, tokenSource.Token).ContinueWith(
+                t => IsSearching = false, 
+                tokenSource.Token, 
+                TaskContinuationOptions.None, 
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
         }
 
         public void RetrieveGroupProperties(GroupModel group)
@@ -161,21 +169,25 @@ namespace WindowsADExplorer.Models
             {
                 throw new ArgumentNullException("group");
             }
-            var propertyCollection = group.Properties;
-            BindingOperations.EnableCollectionSynchronization(propertyCollection, propertyCollection);
+            group.Properties.EnableSync();
 
             Task.Factory.StartNew(() =>
             {
-                propertyCollection.Clear();
+                group.Properties.Clear();
                 var properties = repository.GetGroupProperties(group.Name);
                 var models = properties.Select(p => propertyMapper.GetModel(p));
                 var modelComparer = KeyComparer<PropertyModel>.OrderBy(p => p.Name);
                 foreach (PropertyModel model in models)
                 {
-                    int index = propertyCollection.ToSublist().UpperBound(model, modelComparer);
-                    propertyCollection.Insert(index, model);
+                    int index = group.Properties.ToSublist().UpperBound(model, modelComparer);
+                    group.Properties.Insert(index, model);
                 }
-            });
+            }).ContinueWith(
+                t => onErrorOccurred(t.Exception), 
+                CancellationToken.None, 
+                TaskContinuationOptions.OnlyOnFaulted, 
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
         }
 
         public void RetrieveGroupMembers(GroupModel group)
@@ -188,21 +200,25 @@ namespace WindowsADExplorer.Models
             {
                 return;
             }
-            var userCollection = group.Users;
-            BindingOperations.EnableCollectionSynchronization(userCollection, userCollection);
+            group.Users.EnableSync();
 
             Task.Factory.StartNew(() =>
             {
-                userCollection.Clear();
+                group.Users.Clear();
                 var users = repository.GetGroupMembers(group.Name);
                 var userModels = users.Select(u => userMapper.GetModel(u, includeDummy: false));
                 var modelComparer = KeyComparer<UserModel>.OrderBy(m => m.FullName);
                 foreach (UserModel model in userModels)
                 {
-                    int index = userCollection.ToSublist().UpperBound(model, modelComparer);
-                    userCollection.Insert(index, model);
+                    int index = group.Users.ToSublist().UpperBound(model, modelComparer);
+                    group.Users.Insert(index, model);
                 }
-            });
+            }).ContinueWith(
+                t => onErrorOccurred(t.Exception), 
+                CancellationToken.None, 
+                TaskContinuationOptions.OnlyOnFaulted, 
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
         }
 
         public void RetrieveUsers(string searchTerm)
@@ -211,8 +227,8 @@ namespace WindowsADExplorer.Models
             {
                 throw new InvalidOperationException("You must connect to AD before querying the users.");
             }
-            //currentCollection = Users;
-            //OnPropertyChanged(x => x.RecordCount);
+            currentCollection = Users;
+            OnPropertyChanged(x => x.RecordCount);
 
             if (tokenSource != null)
             {
@@ -220,24 +236,35 @@ namespace WindowsADExplorer.Models
             }
             tokenSource = new CancellationTokenSource();
 
-            userTask = userTask.ContinueWith(t =>
+            userTask = userTask.ContinueWith(
+                t => IsSearching = true, 
+                tokenSource.Token, 
+                TaskContinuationOptions.None, 
+                TaskScheduler.FromCurrentSynchronizationContext()
+            ).ContinueWith(t =>
             {
-                IsSearching = true;
+                CancellationToken token = tokenSource.Token;
                 Users.Clear();
                 var users = repository.GetUsers(searchTerm);
                 var models = users.Select(u => userMapper.GetModel(u, includeDummy: true));
                 var modelComparer = KeyComparer<UserModel>.OrderBy(u => u.FullName);
                 foreach (var model in models)
                 {
-                    tokenSource.Token.ThrowIfCancellationRequested();
+                    token.ThrowIfCancellationRequested();
                     int index = Users.ToSublist().UpperBound(model, modelComparer);
                     Users.Insert(index, model);
                 }
-            }, tokenSource.Token);
-            userTask.ContinueWith(t => 
-            { 
-                IsSearching = false; 
-            }, tokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext());
+            }, tokenSource.Token).ContinueWith(
+                t => onErrorOccurred(t.Exception),
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted,
+                TaskScheduler.FromCurrentSynchronizationContext()
+            ).ContinueWith(
+                t => IsSearching = false,
+                tokenSource.Token, 
+                TaskContinuationOptions.None, 
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
         }
 
         public void RetrieveUserProperties(UserModel user)
@@ -246,21 +273,25 @@ namespace WindowsADExplorer.Models
             {
                 throw new ArgumentNullException("user");
             }
-            var propertyCollection = user.Properties;
-            BindingOperations.EnableCollectionSynchronization(propertyCollection, propertyCollection);
+            user.Properties.EnableSync();
 
             Task.Factory.StartNew(() =>
             {
-                propertyCollection.Clear();
+                user.Properties.Clear();
                 var properties = repository.GetUserProperties(user.Name);
                 var models = properties.Select(p => propertyMapper.GetModel(p));
                 var modelComparer = KeyComparer<PropertyModel>.OrderBy(p => p.Name);
                 foreach (PropertyModel model in models)
                 {
-                    int index = propertyCollection.ToSublist().UpperBound(model, modelComparer);
-                    propertyCollection.Insert(index, model);
+                    int index = user.Properties.ToSublist().UpperBound(model, modelComparer);
+                    user.Properties.Insert(index, model);
                 }
-            });
+            }).ContinueWith(
+                t => onErrorOccurred(t.Exception), 
+                CancellationToken.None, 
+                TaskContinuationOptions.OnlyOnFaulted, 
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
         }
 
         public void RetrieveUserGroups(UserModel user)
@@ -273,21 +304,33 @@ namespace WindowsADExplorer.Models
             {
                 return;
             }
-            var groupCollection = user.Groups;
-            BindingOperations.EnableCollectionSynchronization(groupCollection, groupCollection);
+            user.Groups.EnableSync();
 
             Task.Factory.StartNew(() =>
             {
-                groupCollection.Clear();
+                user.Groups.Clear();
                 var groups = repository.GetUserGroups(user.Name);
                 var groupModels = groups.Select(g => groupMapper.GetModel(g, includeDummy: false));
                 var modelComparer = KeyComparer<GroupModel>.OrderBy(m => m.Name);
                 foreach (GroupModel model in groupModels)
                 {
-                    int index = groupCollection.ToSublist().UpperBound(model, modelComparer);
-                    groupCollection.Insert(index, model);
+                    int index = user.Groups.ToSublist().UpperBound(model, modelComparer);
+                    user.Groups.Insert(index, model);
                 }
-            });
+            }).ContinueWith(
+                t => onErrorOccurred(t.Exception), 
+                CancellationToken.None, 
+                TaskContinuationOptions.OnlyOnFaulted, 
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
+        }
+
+        private void onErrorOccurred(Exception exception)
+        {
+            if (exception != null && ErrorOccurred != null)
+            {
+                ErrorOccurred(this, exception);
+            }
         }
 
         public void Cancel()
@@ -295,18 +338,6 @@ namespace WindowsADExplorer.Models
             if (tokenSource != null)
             {
                 tokenSource.Cancel();
-            }
-        }
-
-        public void ApplyFilter(string filterText)
-        {
-            if (currentCollection == Groups)
-            {
-                RetrieveGroups(filterText);
-            }
-            else if (currentCollection == Users)
-            {
-                RetrieveUsers(filterText);
             }
         }
     }
