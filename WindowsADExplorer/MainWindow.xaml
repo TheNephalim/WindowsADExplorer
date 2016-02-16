@@ -192,7 +192,12 @@
                 <TextBlock Text="Searching..." Visibility="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.IsSearching, Converter={StaticResource visibilityConverter}}" />
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
-                <TextBlock Text="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.ActiveCollection.Count, StringFormat='Count: {0:N0}'}" />
+                <StackPanel>
+                    <TextBlock Text="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.Groups.Count, StringFormat='Count: {0:N0}'}"
+                               Visibility="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.AreGroupsDisplayed, Converter={StaticResource visibilityConverter}}"/>
+                    <TextBlock Text="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.Users.Count, StringFormat='Count: {0:N0}'}"
+                               Visibility="{Binding Source={StaticResource serviceLocator}, Path=ExplorerModel.AreUsersDisplayed, Converter={StaticResource visibilityConverter}}" />
+                </StackPanel>
             </StatusBarItem>
         </StatusBar>
     </Grid>

@@ -72,16 +72,22 @@ namespace WindowsADExplorer.Models
             private set { Set(x => x.IsSearching, value); }
         }
 
-        public ICollection ActiveCollection
+        public bool AreGroupsDisplayed
         {
-            get { return Get(x => x.ActiveCollection); }
-            private set { Set(x => x.ActiveCollection, value); }
+            get { return Get(x => x.AreGroupsDisplayed); }
+            set { Set(x => x.AreGroupsDisplayed, value); }
         }
 
         public ThreadSafeObservableCollection<GroupModel> Groups 
         { 
             get { return Get(x => x.Groups); }
             private set { Set(x => x.Groups, value); }
+        }
+
+        public bool AreUsersDisplayed
+        {
+            get { return Get(x => x.AreUsersDisplayed); }
+            set { Set(x => x.AreUsersDisplayed, value); }
         }
 
         public ThreadSafeObservableCollection<UserModel> Users 
@@ -125,7 +131,8 @@ namespace WindowsADExplorer.Models
             {
                 throw new InvalidOperationException("You must connect to AD before querying the groups.");
             }
-            ActiveCollection = Groups;
+            AreGroupsDisplayed = true;
+            AreUsersDisplayed = false;
 
             if (tokenSource != null)
             {
@@ -230,7 +237,8 @@ namespace WindowsADExplorer.Models
             {
                 throw new InvalidOperationException("You must connect to AD before querying the users.");
             }
-            ActiveCollection = Users;
+            AreGroupsDisplayed = false;
+            AreUsersDisplayed = true;
 
             if (tokenSource != null)
             {
