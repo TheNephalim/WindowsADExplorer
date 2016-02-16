@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,15 +10,14 @@ using WindowsADExplorer.Mappers;
 
 namespace WindowsADExplorer.Models
 {
-    public class ManagerUsersModel : ObservableModel<ManagerUsersModel>
+    public class ManageUsersModel : ObservableModel<ManageUsersModel>
     {
         private readonly IUserMapper userMapper;
         private IADRepository repository;
         private Task searchTask;
-        private CancellationTokenSource memberTokenSource;
         private CancellationTokenSource searchTokenSource;
 
-        public ManagerUsersModel(IUserMapper userMapper)
+        public ManageUsersModel(IUserMapper userMapper)
         {
             if (userMapper == null)
             {
@@ -27,13 +25,12 @@ namespace WindowsADExplorer.Models
             }
             this.userMapper = userMapper;
 
-            this.Members = new ThreadSafeObservableCollection<UserModel>();
-            this.Members.EnableSync();
-
-            this.searchTask = new Task(() => { });
-            this.SearchResults = new ThreadSafeObservableCollection<UserModel>();
+            this.searchTask = Task.Factory.StartNew(() => { });
+            this.SearchResults = new ThreadSafeObservableCollection<GroupMemberModel>();
             this.SearchResults.EnableSync();
         }
+
+        public event EventHandler<Exception> ErrorOccurred;
 
         public bool IsSearching
         {
@@ -47,16 +44,10 @@ namespace WindowsADExplorer.Models
             private set { Set(x => x.Group, value); }
         }
 
-        public ThreadSafeObservableCollection<UserModel> SearchResults
+        public ThreadSafeObservableCollection<GroupMemberModel> SearchResults
         {
             get { return Get(x => x.SearchResults); }
             private set { Set(x => x.SearchResults, value); }
-        }
-
-        public ThreadSafeObservableCollection<UserModel> Members
-        {
-            get { return Get(x => x.Members); }
-            private set { Set(x => x.Members, value); }
         }
 
         public void SetRepository(IADRepository repository)
@@ -79,43 +70,21 @@ namespace WindowsADExplorer.Models
                 throw new InvalidOperationException("You must share the connection with the model before setting the group.");
             }
             Group = group;
-
-            if (memberTokenSource != null)
-            {
-                memberTokenSource.Cancel();
-            }
-            memberTokenSource = new CancellationTokenSource();
-
-            var membersTask = Task.Factory.StartNew(() =>
-            {
-                var members = repository.GetGroupMembers(group.Name);
-                return members;
-            }, memberTokenSource.Token).ContinueWith((t, o) => 
-            {
-                CancellationToken token = memberTokenSource.Token;
-                Members.Clear();
-
-                var members = t.Result;
-                var models = members.Select(m => userMapper.GetModel(m, includeDummy: false));
-                var modelComparer = KeyComparer<UserModel>.OrderBy(m => m.FullName).ThenBy(m => m.Name);
-                foreach (var model in models)
-                {
-                    token.ThrowIfCancellationRequested();
-                    int index = Members.ToSublist().UpperBound(model, modelComparer);
-                    Members.Insert(index, model);
-                }
-            }, null, memberTokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
         }
 
         public void Search(string searchTerm)
         {
-            if (String.IsNullOrWhiteSpace(searchTerm))
-            {
-                return;
-            }
             if (repository == null)
             {
                 throw new InvalidOperationException("You must share the connection with the model before searching.");
+            }
+            if (Group == null)
+            {
+                throw new InvalidOperationException("You must set the group before searching.");
+            }
+            if (String.IsNullOrWhiteSpace(searchTerm))
+            {
+                return;
             }
 
             if (searchTokenSource != null)
@@ -125,74 +94,100 @@ namespace WindowsADExplorer.Models
             searchTokenSource = new CancellationTokenSource();
 
             searchTask = searchTask.ContinueWith(
-                t => IsSearching = true,
+                t => { IsSearching = true; },
                 searchTokenSource.Token,
                 TaskContinuationOptions.None,
                 TaskScheduler.FromCurrentSynchronizationContext()
             ).ContinueWith(t =>
             {
+                var searchResults = repository.GetUsers(searchTerm, includeGroups: true);
+                return searchResults;
+            }, searchTokenSource.Token).ContinueWith(t =>
+            {
                 CancellationToken token = searchTokenSource.Token;
                 SearchResults.Clear();
 
-                var searchResults = repository.GetUsers(searchTerm);
-                var models = searchResults.Select(m => userMapper.GetModel(m, includeDummy: false));
-                var modelComparer = KeyComparer<UserModel>.OrderBy(m => m.FullName).ThenBy(m => m.Name);
+                Group group = repository.GetGroup(Group.Name);
+                var searchResults = t.Result;
+                var models = searchResults.Select(m => userMapper.GetMemberModel(group.DistinguishedName, m));
+                var modelComparer = KeyComparer<GroupMemberModel>.OrderBy(m => m.FullName).ThenBy(m => m.Name);
                 foreach (var model in models)
                 {
                     token.ThrowIfCancellationRequested();
                     int index = SearchResults.ToSublist().UpperBound(model, modelComparer);
                     SearchResults.Insert(index, model);
                 }
-            }, searchTokenSource.Token).ContinueWith(
-                t => IsSearching = false,
-                searchTokenSource.Token, 
-                TaskContinuationOptions.None, 
+            }, searchTokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+            searchTask.ContinueWith(
+                t => onErrorOccurred(t.Exception), 
+                CancellationToken.None, 
+                TaskContinuationOptions.OnlyOnFaulted, 
                 TaskScheduler.FromCurrentSynchronizationContext()
             );
+            searchTask.ContinueWith(
+                 t => { IsSearching = false; },
+                 searchTokenSource.Token,
+                 TaskContinuationOptions.None,
+                 TaskScheduler.FromCurrentSynchronizationContext()
+             );
         }
 
-        public void AddMember(UserModel user)
+        public void AddMember(GroupMemberModel user)
         {
             if (user == null)
             {
                 throw new ArgumentNullException("user");
             }
-            Task.Factory.StartNew(() =>
+            var addTask = Task.Factory.StartNew(() =>
             {
                 repository.AddGroupMember(Group.Name, user.Name);
-            }).ContinueWith(t =>
+            });
+            addTask.ContinueWith(
+                t => onErrorOccurred(t.Exception), 
+                CancellationToken.None, 
+                TaskContinuationOptions.OnlyOnFaulted, 
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
+            addTask.ContinueWith(t =>
             {
-                SearchResults.Remove(user);
-                var modelComparer = KeyComparer<UserModel>.OrderBy(m => m.FullName);
-                int index = Members.ToSublist().UpperBound(user, modelComparer);
-                Members.Insert(index, user);
-            }, TaskContinuationOptions.OnlyOnRanToCompletion);
+                user.CanAdd = false;
+                user.CanRemove = true;
+            }, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext());
         }
 
-        public void RemoveMember(UserModel user)
+        public void RemoveMember(GroupMemberModel user)
         {
             if (user == null)
             {
                 throw new ArgumentNullException("user");
             }
-            Task.Factory.StartNew(() =>
+            var removeTask = Task.Factory.StartNew(() =>
             {
                 repository.RemoveGroupMember(Group.Name, user.Name);
-            }).ContinueWith(t =>
+            });
+            removeTask.ContinueWith(
+                t => onErrorOccurred(t.Exception),
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted,
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
+            removeTask.ContinueWith(t =>
             {
-                Members.Remove(user);
-                var modelComparer = KeyComparer<UserModel>.OrderBy(m => m.FullName);
-                int index = SearchResults.ToSublist().UpperBound(user, modelComparer);
-                SearchResults.Insert(index, user);
-            }, TaskContinuationOptions.OnlyOnRanToCompletion);
+                user.CanAdd = true;
+                user.CanRemove = false;
+            }, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        private void onErrorOccurred(AggregateException exception)
+        {
+            if (exception != null && ErrorOccurred != null)
+            {
+                ErrorOccurred(this, exception.InnerExceptions.First());
+            }
         }
 
         public void Cancel()
         {
-            if (memberTokenSource != null)
-            {
-                memberTokenSource.Cancel();
-            }
             if (searchTokenSource != null)
             {
                 searchTokenSource.Cancel();

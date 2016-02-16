@@ -5,13 +5,13 @@
         Title="{Binding Source={StaticResource serviceLocator}, Path=AddUserModel.Group.Name, StringFormat='{}{0} - Manager Users'}"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
+        FocusManager.FocusedElement="{Binding ElementName=txtSearch}"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         Background="{DynamicResource MaterialDesignPaper}"
         FontFamily="pack://application:,,,/MaterialDesignThemes.Wpf;component/Resources/Roboto/#Roboto" Closing="windowClosing">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" MaxHeight="250" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -23,7 +23,7 @@
             </Grid.ColumnDefinitions>
             <Label Grid.Column="0" Target="{Binding ElementName=txtSearch}" Margin="5" Content="Search:" />
             <TextBox Grid.Column="1" Name="txtSearch" Margin="5" />
-            <Button Grid.Column="2" Margin="5" Click="searchUserClicked">
+            <Button Grid.Column="2" IsDefault="True" Margin="5" Click="searchUserClicked">
                 <StackPanel Orientation="Horizontal">
                     <md:PackIcon Kind="AccountSearch" Margin="0,0,5,0" />
                     <TextBlock Text="Search" />
@@ -33,38 +33,39 @@
         <GroupBox Grid.Row="1" Header="Search Results" Margin="5">
             <DataGrid Name="gridSearchResults"
                       VirtualizingPanel.IsVirtualizing="True"
+                      ScrollViewer.CanContentScroll="True"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                       AutoGenerateColumns="False" 
                       IsReadOnly="True"
-                      ItemsSource="{Binding Source={StaticResource serviceLocator}, Path=AddUserModel.SearchResults}"
-                      ScrollViewer.VerticalScrollBarVisibility="Auto">
+                      ItemsSource="{Binding Source={StaticResource serviceLocator}, Path=AddUserModel.SearchResults}">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Full Name" Binding="{Binding Path=FullName}" Width="*" />
-                    <DataGridTextColumn Header="Domain Name" Binding="{Binding Path=Name}" Width="*" />
-                </DataGrid.Columns>
-            </DataGrid>
-        </GroupBox>
-        <GroupBox Grid.Row="2" Header="Current Users" Margin="5">
-            <DataGrid Name="gridMembers"
-                      VirtualizingPanel.IsVirtualizing="True"
-                      AutoGenerateColumns="False" 
-                      IsReadOnly="True"
-                      ItemsSource="{Binding Source={StaticResource serviceLocator}, Path=AddUserModel.Members}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Full Name" Binding="{Binding Path=FullName}" Width="*" />
-                    <DataGridTextColumn Header="Domain Name" Binding="{Binding Path=Name}" Width="*" />
-                    <DataGridTemplateColumn Header="Action" Width="Auto">
+                    <DataGridTextColumn Header="Full Name" Binding="{Binding Path=FullName}" Width="SizeToCells" />
+                    <DataGridTextColumn Header="Domain Name" Binding="{Binding Path=Name}" Width="SizeToCells" />
+                    <DataGridTemplateColumn Header="Action" Width="SizeToCells">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Background="Red" BorderBrush="DarkRed" Click="removeUserClicked">
-                                    <md:PackIcon Kind="Delete" />
-                                </Button>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Visibility="{Binding Path=CanAdd, Converter={StaticResource visibilityConverter}}" Click="addUserClicked">
+                                        <StackPanel Orientation="Horizontal">
+                                            <md:PackIcon Kind="AccountPlus" Margin="5" />
+                                            <TextBlock Text="Add" Margin="5" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Visibility="{Binding Path=CanRemove, Converter={StaticResource visibilityConverter}}" Click="removeUserClicked">
+                                        <StackPanel Orientation="Horizontal">
+                                            <md:PackIcon Kind="AccountRemove" Margin="5" />
+                                            <TextBlock Text="Remove" Margin="5" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </GroupBox>
-        <StatusBar Grid.Row="3">
+        <StatusBar Grid.Row="2">
             <StatusBarItem>
                 <TextBlock Text="Searching..." Visibility="{Binding Source={StaticResource serviceLocator}, Path=AddUserModel.IsSearching, Converter={StaticResource visibilityConverter}}" />
             </StatusBarItem>

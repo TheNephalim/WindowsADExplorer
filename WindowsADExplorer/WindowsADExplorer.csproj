@@ -85,7 +85,8 @@
     <Compile Include="Entities\Property.cs" />
     <Compile Include="Mappers\PropertyMapper.cs" />
     <Compile Include="Models\ConfirmationModel.cs" />
-    <Compile Include="Models\ManagerUsersModel.cs" />
+    <Compile Include="Models\GroupMemberModel.cs" />
+    <Compile Include="Models\ManageUsersModel.cs" />
     <Compile Include="Models\ErrorModel.cs" />
     <Compile Include="Models\PropertyModel.cs" />
     <Compile Include="Models\ThreadSafeObservableCollection.cs" />

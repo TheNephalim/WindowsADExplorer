@@ -20,7 +20,7 @@ namespace WindowsADExplorer.Injection
 
             Bind<ExplorerModel>().ToSelf().InSingletonScope();
             Bind<ErrorModel>().ToSelf().InSingletonScope();
-            Bind<ManagerUsersModel>().ToSelf().InSingletonScope();
+            Bind<ManageUsersModel>().ToSelf().InSingletonScope();
             Bind<ConfirmationModel>().ToSelf().InSingletonScope();
         }
 

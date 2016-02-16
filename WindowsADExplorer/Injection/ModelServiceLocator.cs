@@ -22,9 +22,9 @@ namespace WindowsADExplorer.Injection
             get { return kernel.Get<ErrorModel>(); }
         }
 
-        public ManagerUsersModel AddUserModel
+        public ManageUsersModel AddUserModel
         {
-            get { return kernel.Get<ManagerUsersModel>(); }
+            get { return kernel.Get<ManageUsersModel>(); }
         }
 
         public ConfirmationModel ConfirmationModel

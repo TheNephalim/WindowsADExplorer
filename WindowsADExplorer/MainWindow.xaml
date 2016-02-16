@@ -4,7 +4,8 @@
         xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Windows AD Explorer"
         ContentRendered="windowRendered" 
-        Closing="Window_Closing"
+        Closing="windowClosing"
+        FocusManager.FocusedElement="{Binding ElementName=txtGroupFilter}"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         Background="{DynamicResource MaterialDesignPaper}"
         FontFamily="pack://application:,,,/MaterialDesignThemes.Wpf;component/Resources/Roboto/#Roboto">
@@ -60,7 +61,7 @@
                                     <TextBlock Text="{Binding Path=Name}">
                                         <TextBlock.ContextMenu>
                                             <ContextMenu Placement="Center">
-                                                <MenuItem Header="_Manage Users..." Click="managerUsersClicked">
+                                                <MenuItem Header="_Manage Users..." Click="manageUsersClicked">
                                                     <MenuItem.Icon>
                                                         <md:PackIcon Kind="Pencil" />
                                                     </MenuItem.Icon>

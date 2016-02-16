@@ -17,6 +17,16 @@ namespace WindowsADExplorer.DataModeling
             return "<not connected>";
         }
 
+        public Group GetGroup(string groupName)
+        {
+            return new Group() { Name = groupName };
+        }
+
+        public User GetUser(string userName)
+        {
+            return new User() { FullName = userName, Name = userName };
+        }
+
         public IEnumerable<Group> GetGroups(string searchTerm)
         {
             var groups = Enumerable.Range(1, 100000)
@@ -24,7 +34,7 @@ namespace WindowsADExplorer.DataModeling
                 .Select(s => new Group() { Name = s });
             if (!String.IsNullOrWhiteSpace(searchTerm))
             {
-                groups = groups.Where(g => g.Name.ToLower().Contains(searchTerm.ToLower()));
+                groups = groups.Where(g => g.Name.StartsWith(searchTerm, StringComparison.CurrentCultureIgnoreCase));
             }
             return groups;
         }
@@ -39,14 +49,19 @@ namespace WindowsADExplorer.DataModeling
             };
         }
 
-        public IEnumerable<User> GetUsers(string searchTerm)
+        public IEnumerable<User> GetUsers(string searchTerm, bool includeGroups = false)
         {
             var users = Enumerable.Range(1, 100000)
                 .Select(i => "User " + getRandomString(i))
-                .Select(s => new User() { Name = s, FullName = s });
+                .Select(s => new User() 
+                { 
+                    Name = s, 
+                    FullName = s, 
+                    Groups = includeGroups ? new string[0] : null 
+                });
             if (!String.IsNullOrWhiteSpace(searchTerm))
             {
-                users = users.Where(g => g.Name.ToLower().Contains(searchTerm.ToLower()));
+                users = users.Where(g => g.Name.StartsWith(searchTerm, StringComparison.CurrentCultureIgnoreCase));
             }
             return users;
         }

@@ -1,4 +1,6 @@
-﻿using WindowsADExplorer.Entities;
+﻿using System;
+using System.Linq;
+using WindowsADExplorer.Entities;
 using WindowsADExplorer.Models;
 
 namespace WindowsADExplorer.Mappers
@@ -8,6 +10,8 @@ namespace WindowsADExplorer.Mappers
         UserModel GetModel(User user, bool includeDummy);
 
         bool AreGroupsLoaded(UserModel user);
+
+        GroupMemberModel GetMemberModel(string groupName, User m);
     }
 
     public class UserMapper : IUserMapper
@@ -25,6 +29,17 @@ namespace WindowsADExplorer.Mappers
             {
                 model.Groups.Add(dummyGroup);
             }
+            return model;
+        }
+
+        public GroupMemberModel GetMemberModel(string groupName, User user)
+        {
+            GroupMemberModel model = new GroupMemberModel();
+            model.FullName = user.FullName;
+            model.Name = user.Name;
+            bool isMember = user.Groups.Contains(groupName, StringComparer.CurrentCultureIgnoreCase);
+            model.CanAdd = !isMember;
+            model.CanRemove = isMember;
             return model;
         }
 

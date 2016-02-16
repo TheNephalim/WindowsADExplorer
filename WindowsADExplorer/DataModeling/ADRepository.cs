@@ -14,11 +14,15 @@ namespace WindowsADExplorer.DataModeling
 
         string GetServerName();
 
+        User GetUser(string userName);
+
+        Group GetGroup(string groupName);
+
         IEnumerable<Group> GetGroups(string searchTerm);
 
         IEnumerable<Group> GetUserGroups(string userName);
 
-        IEnumerable<User> GetUsers(string searchTerm);
+        IEnumerable<User> GetUsers(string searchTerm, bool includeGroups = false);
 
         IEnumerable<User> GetGroupMembers(string groupName);
 
@@ -67,6 +71,44 @@ namespace WindowsADExplorer.DataModeling
             return serverName;
         }
 
+        public User GetUser(string userName)
+        {
+            return getUser(userName);
+        }
+
+        private User getUser(string userName)
+        {
+            string filter = "(&(objectCategory=person)(sAMAccountName=" + userName + "))";
+            string[] properties = getUserProperties();
+            DirectorySearcher searcher = new DirectorySearcher(rootEntry, filter, properties, SearchScope.Subtree);
+            searcher.PageSize = 1000;
+            SearchResult result = searcher.FindOne();
+            if (result == null)
+            {
+                return null;
+            }
+            return getUser(result, false);
+        }
+
+        public Group GetGroup(string groupName)
+        {
+            return getGroup(groupName);
+        }
+
+        private Group getGroup(string groupName)
+        {
+            string filter = "(&(objectCategory=group)(sAMAccountName=" + groupName + "))";
+            string[] properties = getGroupProperties();
+            DirectorySearcher searcher = new DirectorySearcher(rootEntry, filter, properties, SearchScope.Subtree);
+            searcher.PageSize = 1000;
+            SearchResult result = searcher.FindOne();
+            if (result == null)
+            {
+                return null;
+            }
+            return getGroup(result);
+        }
+
         public IEnumerable<Group> GetGroups(string searchTerm)
         {
             string filter = applySearchTerm("(objectCategory=group)", searchTerm);
@@ -80,12 +122,12 @@ namespace WindowsADExplorer.DataModeling
 
         public IEnumerable<Group> GetUserGroups(string userName)
         {
-            string userDN = getUserDN(userName);
-            if (userDN == null)
+            User user = getUser(userName);
+            if (user == null)
             {
                 return Enumerable.Empty<Group>();
             }
-            string filter = "(&(objectCategory=group)(member=" + userDN + "))";
+            string filter = "(&(objectCategory=group)(member=" + user.DistinguishedName + "))";
             string[] properties = getGroupProperties();
             DirectorySearcher searcher = new DirectorySearcher(rootEntry, filter, properties, SearchScope.Subtree);
             searcher.PageSize = 1000;
@@ -94,81 +136,66 @@ namespace WindowsADExplorer.DataModeling
             return groups;
         }
 
-        private string getUserDN(string sAMAccountName)
-        {
-            string filter = "(&(objectCategory=person)(sAMAccountName=" + sAMAccountName + "))";
-            string[] properties = new string[] { "distinguishedname" };
-            DirectorySearcher searcher = new DirectorySearcher(rootEntry, filter, properties, SearchScope.Subtree);
-            SearchResult result = searcher.FindOne();
-            if (result == null)
-            {
-                return null;
-            }
-            return result.Properties["distinguishedname"].Cast<string>().FirstOrDefault();
-        }
-
         private static string[] getGroupProperties()
         {
-            return new string[] { "sAMAccountName" };
+            return new string[] { "sAMAccountName", "distinguishedname" };
         }
 
         private static Group getGroup(SearchResult result)
         {
             Group group = new Group();
+            group.DistinguishedName = result.Properties["distinguishedname"].OfType<string>().FirstOrDefault();
             group.Name = result.Properties["sAMAccountName"].OfType<string>().FirstOrDefault();
             return group;
         }
 
-        public IEnumerable<User> GetUsers(string searchTerm)
+        public IEnumerable<User> GetUsers(string searchTerm, bool includeGroups = false)
         {
             string filter = applySearchTerm("(objectCategory=person)", searchTerm);
-            DirectorySearcher searcher = new DirectorySearcher(rootEntry, filter, null, SearchScope.Subtree);
+            List<string> properties = new List<string>(getUserProperties());
+            if (includeGroups)
+            {
+                properties.Add("memberOf");
+            }
+            DirectorySearcher searcher = new DirectorySearcher(rootEntry, filter, properties.ToArray(), SearchScope.Subtree);
             searcher.PageSize = 1000;
             SearchResultCollection results = searcher.FindAll();
-            var users = results.Cast<SearchResult>().Select(r => getUser(r));
+            var users = results.Cast<SearchResult>().Select(r => getUser(r, includeGroups));
             return users;
         }
 
         public IEnumerable<User> GetGroupMembers(string groupName)
         {
-            string groupDN = getGroupDN(groupName);
-            if (groupDN == null)
+            Group group = getGroup(groupName);
+            if (group == null)
             {
                 return Enumerable.Empty<User>();
             }
-            string filter = "(&(objectCategory=person)(memberOf=" + groupDN + "))";
+            string filter = "(&(objectCategory=person)(memberOf=" + group.DistinguishedName + "))";
             string[] properties = getUserProperties();
             DirectorySearcher searcher = new DirectorySearcher(rootEntry, filter, properties, SearchScope.Subtree);
             searcher.PageSize = 1000;
             SearchResultCollection results = searcher.FindAll();
-            var users = results.Cast<SearchResult>().Select(r => getUser(r));
+            var users = results.Cast<SearchResult>().Select(r => getUser(r, includeGroups: false));
             return users;
         }
 
-        private string getGroupDN(string sAMAccountName)
-        {
-            string filter = "(&(objectCategory=group)(sAMAccountName=" + sAMAccountName + "))";
-            string[] properties = new string[] { "distinguishedname" };
-            DirectorySearcher searcher = new DirectorySearcher(rootEntry, filter, properties, SearchScope.Subtree);
-            SearchResult result = searcher.FindOne();
-            if (result == null)
-            {
-                return null;
-            }
-            return result.Properties["distinguishedname"].Cast<string>().FirstOrDefault();
-        }
-
-        private User getUser(SearchResult result)
+        private User getUser(SearchResult result, bool includeGroups)
         {
             User user = new User();
+            user.DistinguishedName = result.Properties["distinguishedname"].OfType<string>().FirstOrDefault();
             user.Name = result.Properties["sAMAccountName"].OfType<string>().FirstOrDefault();
             user.FullName = result.Properties["displayName"].OfType<string>().FirstOrDefault();
+            if (includeGroups)
+            {
+                user.Groups = result.Properties["memberOf"].OfType<string>().ToArray();
+            }
             return user;
         }
 
         private static string[] getUserProperties()
         {
-            return new string[] { "sAMAccountName", "displayName" };
+            return new string[] { "sAMAccountName", "displayName", "distinguishedname" };
         }
 
         public IEnumerable<Property> GetGroupProperties(string groupName)
@@ -246,46 +273,46 @@ namespace WindowsADExplorer.DataModeling
 
         public void AddGroupMember(string groupName, string userName)
         {
-            string groupDN = getGroupDN(groupName);
-            if (groupDN == null)
+            Group group = getGroup(groupName);
+            if (group == null)
             {
                 const string format = "Could not find a group with the given name ({0}).";
                 string message = String.Format(format, groupName);
                 throw new InvalidOperationException(message);
             }
-            string userDN = getUserDN(userName);
-            if (userDN == null)
+            User user = getUser(userName);
+            if (user == null)
             {
                 const string format = "Could not find a group with the given name ({0}).";
                 string message = String.Format(format, groupName);
                 throw new InvalidOperationException(message);
             }
-            using (DirectoryEntry groupEntry = new DirectoryEntry("LDAP://" + groupDN, this.userName, password)) // TODO - pass credentials
+            using (DirectoryEntry groupEntry = new DirectoryEntry("LDAP://" + group.DistinguishedName, this.userName, password))
             {
-                groupEntry.Properties["member"].Add(userDN);
+                groupEntry.Properties["member"].Add(user.DistinguishedName);
                 groupEntry.CommitChanges();
             }
         }
 
         public void RemoveGroupMember(string groupName, string userName)
         {
-            string groupDN = getGroupDN(groupName);
-            if (groupDN == null)
+            Group group = getGroup(groupName);
+            if (group == null)
             {
                 const string format = "Could not find a group with the given name ({0}).";
                 string message = String.Format(format, groupName);
                 throw new InvalidOperationException(message);
             }
-            string userDN = getUserDN(userName);
-            if (userDN == null)
+            User user = getUser(userName);
+            if (user == null)
             {
                 const string format = "Could not find a group with the given name ({0}).";
                 string message = String.Format(format, groupName);
                 throw new InvalidOperationException(message);
             }
-            using (DirectoryEntry groupEntry = new DirectoryEntry("LDAP://" + groupDN, this.userName, password)) // TODO - pass credentials
+            using (DirectoryEntry groupEntry = new DirectoryEntry("LDAP://" + group.DistinguishedName, this.userName, password)) // TODO - pass credentials
             {
-                groupEntry.Properties["member"].Remove(userDN);
+                groupEntry.Properties["member"].Remove(user.DistinguishedName);
                 groupEntry.CommitChanges();
             }
         }

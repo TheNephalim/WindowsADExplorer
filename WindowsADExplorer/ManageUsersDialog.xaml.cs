@@ -9,13 +9,23 @@ namespace WindowsADExplorer
 {
     public partial class ManageUsersDialog : Window
     {
-        private readonly ManagerUsersModel model;
+        private readonly ManageUsersModel model;
 
         public ManageUsersDialog()
         {
             InitializeComponent();
             var serviceLocator = this.FindResource<ModelServiceLocator>("serviceLocator");
             this.model = serviceLocator.AddUserModel;
+            this.model.ErrorOccurred += errorOccurred;
+        }
+
+        private void errorOccurred(object sender, Exception e)
+        {
+            ErrorDialog dialog = new ErrorDialog();
+            dialog.Owner = this;
+            dialog.ErrorDetails.ErrorMessage = e.Message;
+            dialog.ErrorDetails.StackTrace = e.StackTrace;
+            dialog.ShowDialog();
         }
 
         public void SetGroup(GroupModel group)
@@ -28,6 +38,21 @@ namespace WindowsADExplorer
             model.Search(txtSearch.Text);
         }
 
+        private void addUserClicked(object sender, RoutedEventArgs e)
+        {
+            Button button = e.Source as Button;
+            if (button == null)
+            {
+                return;
+            }
+            GroupMemberModel user = button.DataContext as GroupMemberModel;
+            if (user == null)
+            {
+                return;
+            }
+            model.AddMember(user);
+        }
+
         private void removeUserClicked(object sender, RoutedEventArgs e)
         {
             Button button = e.Source as Button;
@@ -35,7 +60,7 @@ namespace WindowsADExplorer
             {
                 return;
             }
-            UserModel user = button.DataContext as UserModel;
+            GroupMemberModel user = button.DataContext as GroupMemberModel;
             if (user == null)
             {
                 return;

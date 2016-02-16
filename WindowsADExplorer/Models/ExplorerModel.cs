@@ -106,7 +106,7 @@ namespace WindowsADExplorer.Models
             ServerName = this.repository.GetServerName();
         }
 
-        public void ShareConnection(ManagerUsersModel model)
+        public void ShareConnection(ManageUsersModel model)
         {
             if (model == null)
             {
@@ -134,9 +134,9 @@ namespace WindowsADExplorer.Models
             tokenSource = new CancellationTokenSource();
 
             groupTask = groupTask.ContinueWith(
-                t => IsSearching = true, 
-                tokenSource.Token, 
-                TaskContinuationOptions.None, 
+                t => { IsSearching = true; },
+                tokenSource.Token,
+                TaskContinuationOptions.None,
                 TaskScheduler.FromCurrentSynchronizationContext()
             ).ContinueWith(t =>
             {
@@ -151,10 +151,17 @@ namespace WindowsADExplorer.Models
                     int index = Groups.ToSublist().UpperBound(model, modelComparer);
                     Groups.Insert(index, model);
                 }
-            }, tokenSource.Token).ContinueWith(
-                t => IsSearching = false, 
-                tokenSource.Token, 
-                TaskContinuationOptions.None, 
+            }, tokenSource.Token);
+            groupTask.ContinueWith(
+                t => onErrorOccurred(t.Exception), 
+                CancellationToken.None, 
+                TaskContinuationOptions.OnlyOnFaulted, 
+                TaskScheduler.FromCurrentSynchronizationContext()
+            );
+            groupTask.ContinueWith(
+                t => { IsSearching = false; },
+                tokenSource.Token,
+                TaskContinuationOptions.None,
                 TaskScheduler.FromCurrentSynchronizationContext()
             );
         }
@@ -232,9 +239,9 @@ namespace WindowsADExplorer.Models
             tokenSource = new CancellationTokenSource();
 
             userTask = userTask.ContinueWith(
-                t => IsSearching = true, 
-                tokenSource.Token, 
-                TaskContinuationOptions.None, 
+                t => { IsSearching = true; },
+                tokenSource.Token,
+                TaskContinuationOptions.None,
                 TaskScheduler.FromCurrentSynchronizationContext()
             ).ContinueWith(t =>
             {
@@ -249,17 +256,19 @@ namespace WindowsADExplorer.Models
                     int index = Users.ToSublist().UpperBound(model, modelComparer);
                     Users.Insert(index, model);
                 }
-            }, tokenSource.Token).ContinueWith(
+            }, tokenSource.Token);
+            userTask.ContinueWith(
                 t => onErrorOccurred(t.Exception),
                 CancellationToken.None,
                 TaskContinuationOptions.OnlyOnFaulted,
                 TaskScheduler.FromCurrentSynchronizationContext()
-            ).ContinueWith(
-                t => IsSearching = false,
-                tokenSource.Token, 
-                TaskContinuationOptions.None, 
-                TaskScheduler.FromCurrentSynchronizationContext()
             );
+            userTask.ContinueWith(
+                 t => { IsSearching = false; },
+                 tokenSource.Token,
+                 TaskContinuationOptions.None,
+                 TaskScheduler.FromCurrentSynchronizationContext()
+             );
         }
 
         public void RetrieveUserProperties(UserModel user)
@@ -320,11 +329,11 @@ namespace WindowsADExplorer.Models
             );
         }
 
-        private void onErrorOccurred(Exception exception)
+        private void onErrorOccurred(AggregateException exception)
         {
             if (exception != null && ErrorOccurred != null)
             {
-                ErrorOccurred(this, exception);
+                ErrorOccurred(this, exception.InnerExceptions.First());
             }
         }
 

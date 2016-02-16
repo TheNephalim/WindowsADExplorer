@@ -148,7 +148,7 @@ namespace WindowsADExplorer
             }
         }
 
-        private void Window_Closing(object sender, CancelEventArgs e)
+        private void windowClosing(object sender, CancelEventArgs e)
         {
             model.Cancel();
         }
@@ -163,7 +163,7 @@ namespace WindowsADExplorer
             model.RetrieveUsers(txtUserFilter.Text);
         }
 
-        private void managerUsersClicked(object sender, RoutedEventArgs e)
+        private void manageUsersClicked(object sender, RoutedEventArgs e)
         {
             MenuItem menuItem = e.Source as MenuItem;
             if (menuItem == null)
